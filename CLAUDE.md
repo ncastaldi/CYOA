@@ -75,28 +75,32 @@ Two patterns are load-bearing:
 
 - Repo scaffolded from template; `foundation.md` and `CLAUDE.md` written
 - Package structure with the engine/adapter boundary established
-- Internal story model implemented (`engine/models.py`) and tested for real
 - Story format designed and specified (`docs/specs/spec-story-format.md`)
-- Test suite scaffolded — implemented modules tested normally, unimplemented ones written as `xfail(strict=True)` specifications
 - Root tooling: `pyproject.toml`, `Dockerfile`, `compose.yaml` with Traefik labels, `.env.example`
 - CI (lint, format, test) and GHCR publishing, with publish gated on CI
+- **The engine is complete and green** — 35 passing tests across four modules:
+  - `engine/models.py` — the internal story model
+  - `engine/markdown_parser.py` — frontmatter, passages, choices, tags
+  - `engine/graph.py` — `validate_story` and `reachable_from`
+  - `engine/state.py` — `begin` and `advance`, immutable transitions
+
+  Verified end to end against `stories/example/story.md`, which no test uses: 5 passages, all reachable, zero validation issues, walks to an ending.
 
 ### In progress
 
-Nothing yet — the next session starts the build.
+Nothing. The engine layer is done; the adapters are not started.
 
 ### Not started
 
 Roughly in dependency order:
 
-1. `engine/markdown_parser.py` — parse frontmatter, passages, choices, tags
-2. `engine/graph.py` — `validate_story` and `reachable_from`
-3. `engine/state.py` — `begin` and `advance`
-4. `library/loader.py` — discover stories, dispatch to a parser, list and load
-5. `storage/` — engine construction, schema, `PlaySessionRepository`
-6. `web/routes.py` + `main.create_app` — wire it together and render
+1. `library/loader.py` — discover stories, dispatch to a parser, list and load
+2. `storage/` — engine construction, schema, `PlaySessionRepository`
+3. `web/routes.py` + `main.create_app` — wire it together and render
 
-Each has a test module already written against it. Delete the `pytestmark` xfail block as you implement, and watch the tests go green for real.
+`web/` has a test module written against it, still marked `xfail(strict=True)`; delete the `pytestmark` block as you implement. `library/` and `storage/` have no tests yet — write them first, as was done for `state.py`.
+
+Until `create_app` exists the container builds but exits immediately on start, so the `docker run` instructions in `README.md` do not work yet.
 
 **Roadmap, beyond v1**, in no committed order: a story editor behind an admin login, multiplayer, live LLM story generation at read time, stats/inventory/combat, non-text media.
 
@@ -135,6 +139,9 @@ Deploys are `docker compose pull && up -d`: no build toolchain on the host, no s
 ### ADR-008 — Unimplemented modules ship as `xfail(strict=True)` specifications
 Tests are written before implementations and marked xfail against `NotImplementedError`. `strict=True` means implementing a function makes its test fail with XPASS until the marker is deleted — scaffolding that cleans itself up instead of rotting into permanently-skipped tests.
 
+### ADR-009 — Validation reports warnings even when errors are present
+`validate_story` does not suppress warnings on a story that already has errors, even though a dangling link makes reachability noisier — an orphan caused by a broken link is reported as both. Suppressing would mean an author fixes the errors, re-runs, and only then learns what else is wrong, which is the one-problem-per-run loop the function exists to avoid. Callers that want only blocking problems filter on `Severity.ERROR`.
+
 ---
 
-*Last updated: 2026-09-18 | Session: project initialization — requirements interview, scaffolding, foundation*
+*Last updated: 2026-09-18 | Session: TDD implementation of the engine layer — parser, graph validation, state transitions*

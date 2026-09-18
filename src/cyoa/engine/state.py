@@ -20,7 +20,7 @@ change rather than a free extension. Recorded as an open question in
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
 
@@ -52,7 +52,23 @@ def begin(story: Story, participants: list[ParticipantId], *, session_id: str) -
             Callers should validate stories at load time so this never fires
             at read time.
     """
-    raise NotImplementedError
+    if story.start not in story.passages:
+        raise ValueError(
+            f"story {story.slug!r} starts at {story.start!r}, which is not one of its passages"
+        )
+
+    now = datetime.now(UTC)
+    return PlaySession(
+        id=session_id,
+        story_slug=story.slug,
+        current_passage_id=story.start,
+        # Copied rather than aliased: a caller mutating the list it passed in
+        # must not be able to change who is in an open session.
+        participants=list(participants),
+        history=[],
+        created_at=now,
+        updated_at=now,
+    )
 
 
 def advance(session: PlaySession, story: Story, choice_index: int) -> PlaySession:
@@ -66,4 +82,32 @@ def advance(session: PlaySession, story: Story, choice_index: int) -> PlaySessio
         ValueError: if `choice_index` is out of range for the current passage,
             or if the chosen target does not exist in `story`.
     """
-    raise NotImplementedError
+    passage = story.passage(session.current_passage_id)
+    if passage is None:
+        raise ValueError(
+            f"session {session.id!r} sits at {session.current_passage_id!r}, "
+            f"which is not a passage in story {story.slug!r}"
+        )
+
+    # Rejecting negatives explicitly: Python would happily index from the end,
+    # turning a bad request into a plausible-looking move.
+    if choice_index < 0 or choice_index >= len(passage.choices):
+        raise ValueError(
+            f"passage {passage.id!r} has {len(passage.choices)} choices; "
+            f"{choice_index} is not one of them"
+        )
+
+    choice = passage.choices[choice_index]
+    if choice.target not in story.passages:
+        raise ValueError(
+            f"choice {choice.text!r} points at {choice.target!r}, "
+            f"which is not a passage in story {story.slug!r}"
+        )
+
+    return session.model_copy(
+        update={
+            "current_passage_id": choice.target,
+            "history": [*session.history, passage.id],
+            "updated_at": datetime.now(UTC),
+        }
+    )

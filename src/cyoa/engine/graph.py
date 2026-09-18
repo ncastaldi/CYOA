@@ -58,7 +58,61 @@ def validate_story(story: Story) -> list[ValidationIssue]:
         Every issue found, in no guaranteed order. An empty list means the
         story is playable.
     """
-    raise NotImplementedError
+    issues: list[ValidationIssue] = []
+
+    if story.start not in story.passages:
+        issues.append(
+            ValidationIssue(
+                severity=Severity.ERROR,
+                code="missing_start",
+                message=f"start passage {story.start!r} does not exist",
+            )
+        )
+
+    for passage_id, passage in story.passages.items():
+        for choice in passage.choices:
+            if choice.target not in story.passages:
+                issues.append(
+                    ValidationIssue(
+                        severity=Severity.ERROR,
+                        code="dangling_target",
+                        message=(
+                            f"choice {choice.text!r} points at {choice.target!r}, "
+                            f"which is not a passage in this story"
+                        ),
+                        passage_id=passage_id,
+                    )
+                )
+
+    # Reachability is computed even when errors exist. A dangling link makes
+    # the warnings below noisier, but suppressing them would mean an author
+    # fixes errors, re-runs, and only then learns what else is wrong — which is
+    # the one-problem-per-run loop this whole function exists to avoid.
+    reachable = reachable_from(story)
+
+    for passage_id, passage in story.passages.items():
+        if passage_id not in reachable:
+            issues.append(
+                ValidationIssue(
+                    severity=Severity.WARNING,
+                    code="unreachable_passage",
+                    message=f"no path from {story.start!r} reaches this passage",
+                    passage_id=passage_id,
+                )
+            )
+        if passage.is_ending and "ending" not in passage.tags:
+            issues.append(
+                ValidationIssue(
+                    severity=Severity.WARNING,
+                    code="dead_end",
+                    message=(
+                        "passage offers no choices; tag it 'ending' if stopping here is intentional"
+                    ),
+                    passage_id=passage_id,
+                )
+            )
+
+    return issues
 
 
 def reachable_from(story: Story, start: str | None = None) -> set[str]:
@@ -67,5 +121,23 @@ def reachable_from(story: Story, start: str | None = None) -> set[str]:
     Defaults to the story's declared start passage. Used by validation, and by
     anything that needs to know the true extent of a story — a completion
     percentage, or an editor's map view later on.
+
+    A `start` that does not exist yields an empty set rather than raising:
+    validation reports that as `missing_start`, and this should not be the
+    thing that fails first.
     """
-    raise NotImplementedError
+    origin = story.start if start is None else start
+    if origin not in story.passages:
+        return set()
+
+    seen = {origin}
+    pending = [origin]
+    while pending:
+        passage = story.passages[pending.pop()]
+        for choice in passage.choices:
+            # Dangling targets are reported separately; they simply lead nowhere.
+            if choice.target in story.passages and choice.target not in seen:
+                seen.add(choice.target)
+                pending.append(choice.target)
+
+    return seen
