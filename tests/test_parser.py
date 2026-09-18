@@ -1,8 +1,7 @@
-"""Specification for the Markdown + frontmatter parser.
+"""Tests for the Markdown + frontmatter parser.
 
-`MarkdownStoryParser` is not implemented yet, so every test here is marked
-xfail against `NotImplementedError`. They are the spec, written first. See
-`tests/README.md` for why the marker is strict.
+Written before the implementation; see `docs/specs/spec-story-format.md` for
+the normative format these assert against.
 """
 
 from __future__ import annotations
@@ -11,12 +10,6 @@ import pytest
 
 from cyoa.engine.markdown_parser import MarkdownStoryParser
 from cyoa.engine.parser import StoryParseError
-
-pytestmark = pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=True,
-    reason="MarkdownStoryParser not implemented — delete this marker when it is",
-)
 
 
 def test_parses_story_metadata_from_frontmatter(tiny_source: str) -> None:
@@ -59,9 +52,28 @@ def test_parses_passage_tags_from_the_heading(tiny_source: str) -> None:
     assert story.passages["start"].tags == []
 
 
+def test_tolerates_a_byte_order_mark(tiny_source: str) -> None:
+    """Some editors prefix a file with one; it must not break delimiter detection."""
+    story = MarkdownStoryParser().parse(chr(0xFEFF) + tiny_source, slug="tiny")
+
+    assert story.title == "Tiny"
+    assert set(story.passages) == {"start", "door", "window"}
+
+
 def test_rejects_a_file_with_no_frontmatter() -> None:
     with pytest.raises(StoryParseError):
         MarkdownStoryParser().parse("## start\n\nNo metadata here.\n", slug="broken")
+
+
+def test_rejects_unclosed_frontmatter() -> None:
+    with pytest.raises(StoryParseError):
+        MarkdownStoryParser().parse("---\ntitle: Unfinished\n\n## start\n\nHello.\n", slug="broken")
+
+
+def test_rejects_duplicate_passage_ids() -> None:
+    source = "---\ntitle: Twice\nstart: a\n---\n\n## a\n\nFirst.\n\n## a\n\nSecond.\n"
+    with pytest.raises(StoryParseError):
+        MarkdownStoryParser().parse(source, slug="broken")
 
 
 def test_rejects_a_file_with_no_passages() -> None:

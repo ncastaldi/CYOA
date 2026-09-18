@@ -1,20 +1,9 @@
-"""Specification for story graph validation.
-
-Not implemented yet — see `tests/README.md` for the xfail convention.
-"""
+"""Tests for story graph validation."""
 
 from __future__ import annotations
 
-import pytest
-
 from cyoa.engine.graph import Severity, reachable_from, validate_story
 from cyoa.engine.models import Choice, Passage, Story
-
-pytestmark = pytest.mark.xfail(
-    raises=NotImplementedError,
-    strict=True,
-    reason="graph validation not implemented — delete this marker when it is",
-)
 
 
 def test_a_sound_story_has_no_issues(tiny_story: Story) -> None:
@@ -26,13 +15,16 @@ def test_reachable_from_walks_the_whole_graph(tiny_story: Story) -> None:
 
 
 def test_dangling_target_is_an_error(tiny_story: Story) -> None:
+    # Re-pointing this choice also removes the only path to `door`, so an
+    # `unreachable_passage` warning alongside it is correct. Assert on the
+    # dangling target itself rather than on the whole issue list.
     tiny_story.passages["start"].choices[0].target = "missing"
 
-    issues = validate_story(tiny_story)
+    dangling = [i for i in validate_story(tiny_story) if i.code == "dangling_target"]
 
-    assert [i.code for i in issues] == ["dangling_target"]
-    assert issues[0].severity is Severity.ERROR
-    assert issues[0].passage_id == "start"
+    assert len(dangling) == 1
+    assert dangling[0].severity is Severity.ERROR
+    assert dangling[0].passage_id == "start"
 
 
 def test_missing_start_is_an_error() -> None:
