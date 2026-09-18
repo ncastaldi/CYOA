@@ -3,10 +3,9 @@ description: "Interactive menu for git branch-based development workflow with co
 ---
 
 ## Config
-<!-- Fill in once when you set up this repo -->
-TEST_COMMAND: {set by init-project — e.g. "pytest tests/ -v" or "npm test"}
-LINT_COMMAND: {set by init-project — e.g. "ruff check ." or "npm run lint"}
-SRC_ROOT: {set by init-project — the main source folder}
+TEST_COMMAND: pytest
+LINT_COMMAND: ruff check . && ruff format --check .
+SRC_ROOT: src/cyoa/
 DOCS_ROOT: docs/
 ADR_PATH: docs/ADRs/
 SNAPSHOT_PATH: docs/session-history/
