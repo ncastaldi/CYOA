@@ -7,13 +7,31 @@ edited or replaced without anyone expecting the suite to care.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 
+from cyoa.config import get_settings
 from cyoa.engine.models import Choice, Passage, Story
 
 FIXTURE_STORIES = Path(__file__).parent / "fixtures" / "stories"
+
+
+@pytest.fixture(autouse=True)
+def settings_for_tests(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Point `create_app()` at the fixture stories and a throwaway database.
+
+    Autouse because `create_app` reads `get_settings()` itself rather than
+    taking configuration as an argument — the environment is the seam. The
+    cache is cleared either side so a test never inherits another's settings,
+    and `tmp_path` gives every test a database with no history in it.
+    """
+    monkeypatch.setenv("CYOA_STORIES_DIR", str(FIXTURE_STORIES))
+    monkeypatch.setenv("CYOA_DB_PATH", str(tmp_path / "cyoa.db"))
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 @pytest.fixture
