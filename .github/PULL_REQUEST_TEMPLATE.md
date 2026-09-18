@@ -20,8 +20,8 @@
 
 ## Checklist
 
-- [ ] Tests pass (see this repo's `TEST_COMMAND`, e.g. in `.github/prompts/session-start.prompt.md`)
-- [ ] Lint passes (see this repo's `LINT_COMMAND`)
+- [ ] Tests pass (`pytest`)
+- [ ] Lint passes (`ruff check . && ruff format --check .`)
 - [ ] No secrets committed
 - [ ] CLAUDE.md updated if architecture or constraints changed
 - [ ] Relevant docs updated (ADR, spec, SOP) if applicable

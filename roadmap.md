@@ -123,25 +123,25 @@ anything the next session needs to know.
 
 Every Markdown file in the repo read and checked against the code. Three
 classes of problem, all from the same cause — the repo was scaffolded from a
-stack-agnostic template and the docs were never re-pointed at the application
+stack-agnostic template and the docs were never re-pointed at the application <!-- inherited-docs-ok -->
 that grew in it.
 
 **Template leftovers describing a different repository:**
 
 - `CONTRIBUTING.md` opened "Thanks for your interest in contributing to this
-  template" and stated "No CI gate on the template itself — it ships no app
+  template" and stated "No CI gate on the template itself — it ships no app <!-- inherited-docs-ok -->
   code, so there's nothing to lint or test at this level." There is a CI gate
   and 99 tests. Its out-of-scope section also declared application code out of
   scope. Rewritten for this project, including the real quality gate and the
   constraints a new feature has to clear.
-- `SECURITY.md` said "This is a project template, not a deployed application",
+- `SECURITY.md` said "This is a project template, not a deployed application", <!-- inherited-docs-ok -->
   referenced a `requirements.txt` that does not exist, and claimed Dependabot
   watched npm (it watches pip, docker, and github-actions). Rewritten, with a
   threat model — a story file is untrusted input, and v1's lack of auth is
   deliberate rather than an oversight.
 - `scripts/README.md` sent application code to `backend/`, a directory this
   project has never had.
-- `CONTRIBUTING.md` referenced `.github/prompts/create-commit.prompt.md`,
+- `CONTRIBUTING.md` referenced `.github/prompts/create-commit.prompt.md`, <!-- inherited-docs-ok -->
   which does not exist. Reference removed.
 
 **Stale claims about the build state:**
