@@ -68,6 +68,7 @@ Two patterns are load-bearing:
 - **Docstrings on public functions, classes, and modules.** Say *why*, not just *what* — the what is usually readable from the signature. The interesting comments in this codebase explain a decision, not a mechanism.
 - Passage ids and story slugs are lowercase with hyphens or underscores, so they are URL-safe without escaping.
 - Story files live at `stories/{slug}/story.md`.
+- **Tests that need a story on disk build it in `tmp_path`, not in `tests/fixtures/stories/`.** The shared fixture directory is the library `test_web.py` renders, and the library lists unparseable stories rather than hiding them — so a deliberately broken fixture added there turns up in an unrelated test's assertions. `tests/fixtures/stories/` stays the shape the web tests expect.
 
 ## Current state
 
@@ -93,15 +94,17 @@ Two patterns are load-bearing:
 
   Verified end to end against `stories/example/story.md` through a real uvicorn boot: the library lists it, a reader walks it to an ending, progress survives across requests, and restart returns to the start passage.
 
+- **Every package has unit tests of its own** — 99 passing tests. `library/` and `storage/` were previously covered only through `test_web.py`; `tests/test_library.py` and `tests/test_storage.py` now test them directly, at the same behaviour-level as `test_state.py`. Between them they pin down the things the web layer only reaches by accident: slug validation as the barrier between a URL segment and the filesystem, dispatch to a second parser by extension, the catalogue being re-read per call, and UTC being re-attached to timestamps SQLite hands back naive.
+
 ### In progress
 
-Nothing. v1 reads end to end.
+Nothing. v1 reads end to end, and every package is covered.
 
 ### Not started
 
-`library/` and `storage/` still have no unit tests of their own — they are covered only through `test_web.py`. Write them as was done for `state.py`.
-
 **Roadmap, beyond v1**, in no committed order: a story editor behind an admin login, multiplayer, live LLM story generation at read time, stats/inventory/combat, non-text media.
+
+Sequencing, and the state of the queue between sessions, lives in `roadmap.md`. This file stays the *why*; that one tracks the *what next*.
 
 ## Open questions
 
@@ -146,4 +149,4 @@ The cookie holds a play-session id and nothing else; the session itself is a row
 
 ---
 
-*Last updated: 2026-09-18 | Session: TDD implementation of the storage and web adapters — repository, routes, templates*
+*Last updated: 2026-09-18 | Session: unit tests for `library/` and `storage/`; `roadmap.md` introduced as the cross-session work queue*
