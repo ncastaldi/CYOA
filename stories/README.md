@@ -42,6 +42,8 @@ A passage with no choices is an ending — you do not declare it, you just stop 
 
 **The full format, including every field and error case, is specified in [`../docs/specs/spec-story-format.md`](../docs/specs/spec-story-format.md).** That document is normative; this README is the quick version.
 
+Handing the writing off to someone who isn't touching the codebase? Send them [`../docs/author-guide.md`](../docs/author-guide.md) instead — it's the same format, explained without assuming any of this context, plus a copy-paste template and a self-check command.
+
 ## What belongs here
 
 - Story folders, each with a `story.md`
