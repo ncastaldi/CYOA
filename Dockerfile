@@ -1,6 +1,6 @@
 # Build the virtualenv in one stage, ship only its contents in the next, so the
 # runtime image carries no compilers, no pip cache, and no build metadata.
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /build
 
@@ -12,7 +12,7 @@ RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir .
 
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # Unbuffered so container logs appear in `docker logs` as they happen.
 ENV PYTHONUNBUFFERED=1 \
