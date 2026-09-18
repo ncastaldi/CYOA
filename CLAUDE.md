@@ -86,21 +86,20 @@ Two patterns are load-bearing:
 
   Verified end to end against `stories/example/story.md`, which no test uses: 5 passages, all reachable, zero validation issues, walks to an ending.
 
+- **The adapters are complete and green** — 42 passing tests, no `xfail` left in the suite:
+  - `library/loader.py` — discovery, parser dispatch, catalogue; a broken story lists as `is_playable=False` rather than vanishing
+  - `storage/` — engine construction, `create_all` schema, `PlaySessionRepository`
+  - `web/routes.py` + `main.create_app` — the five routes, rendered through Jinja and htmx
+
+  Verified end to end against `stories/example/story.md` through a real uvicorn boot: the library lists it, a reader walks it to an ending, progress survives across requests, and restart returns to the start passage.
+
 ### In progress
 
-Nothing. The engine layer is done; the adapters are not started.
+Nothing. v1 reads end to end.
 
 ### Not started
 
-Roughly in dependency order:
-
-1. `library/loader.py` — discover stories, dispatch to a parser, list and load
-2. `storage/` — engine construction, schema, `PlaySessionRepository`
-3. `web/routes.py` + `main.create_app` — wire it together and render
-
-`web/` has a test module written against it, still marked `xfail(strict=True)`; delete the `pytestmark` block as you implement. `library/` and `storage/` have no tests yet — write them first, as was done for `state.py`.
-
-Until `create_app` exists the container builds but exits immediately on start, so the `docker run` instructions in `README.md` do not work yet.
+`library/` and `storage/` still have no unit tests of their own — they are covered only through `test_web.py`. Write them as was done for `state.py`.
 
 **Roadmap, beyond v1**, in no committed order: a story editor behind an admin login, multiplayer, live LLM story generation at read time, stats/inventory/combat, non-text media.
 
@@ -142,6 +141,9 @@ Tests are written before implementations and marked xfail against `NotImplemente
 ### ADR-009 — Validation reports warnings even when errors are present
 `validate_story` does not suppress warnings on a story that already has errors, even though a dangling link makes reachability noisier — an orphan caused by a broken link is reported as both. Suppressing would mean an author fixes the errors, re-runs, and only then learns what else is wrong, which is the one-problem-per-run loop the function exists to avoid. Callers that want only blocking problems filter on `Severity.ERROR`.
 
+### ADR-010 — A reader's place lives in a cookie pointing at a database row
+The cookie holds a play-session id and nothing else; the session itself is a row. Putting the position in the cookie would have avoided the database entirely, but it freezes a story into a browser — an edited passage would not reach a reader mid-book, and the "drop a file in and it plays" metric runs straight through that. The cookie is per story, so two books in progress do not evict each other, and the reader id it carries is the `participants` entry the multiplayer shape already expects.
+
 ---
 
-*Last updated: 2026-09-18 | Session: TDD implementation of the engine layer — parser, graph validation, state transitions*
+*Last updated: 2026-09-18 | Session: TDD implementation of the storage and web adapters — repository, routes, templates*

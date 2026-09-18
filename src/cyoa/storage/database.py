@@ -14,8 +14,10 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-from sqlalchemy import Engine
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session
+
+from cyoa.storage.models import Base
 
 
 def create_engine_for(db_path: Path) -> Engine:
@@ -24,7 +26,15 @@ def create_engine_for(db_path: Path) -> Engine:
     Creates the parent directory if it does not exist, so a fresh volume mount
     works on first boot without a setup step.
     """
-    raise NotImplementedError
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    return create_engine(
+        f"sqlite:///{db_path}",
+        # FastAPI runs sync handlers in a worker threadpool, so a pooled
+        # connection is reached from whichever thread picks up the request.
+        # Each request still gets its own Session, which is what keeps the
+        # transactions separate.
+        connect_args={"check_same_thread": False},
+    )
 
 
 def create_schema(engine: Engine) -> None:
@@ -35,10 +45,21 @@ def create_schema(engine: Engine) -> None:
     change lands that cannot be expressed as an added nullable column, this is
     where Alembic goes in.
     """
-    raise NotImplementedError
+    Base.metadata.create_all(engine)
 
 
 @contextmanager
 def session_scope(engine: Engine) -> Iterator[Session]:
     """Yield a transactional session, committing on success and rolling back on error."""
-    raise NotImplementedError
+    # expire_on_commit=False: the caller may still read what it just saved
+    # after the scope commits, and a refresh against a closed session would
+    # fail. Repositories hand back engine types anyway, never live rows.
+    session = Session(engine, expire_on_commit=False)
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
