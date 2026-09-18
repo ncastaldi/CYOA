@@ -2,7 +2,7 @@
 
 Reusable prompt files for structured development workflows with GitHub Copilot (and compatible LLM assistants). These files live here because VS Code reads `.github/prompts/` as the workspace prompt library.
 
-Most of this template's workflows are now **skills** in `.claude/skills/`, not prompt files. Skills load themselves when the work matches their description, so they need no attaching. What remains here are the two workflows that are still prompt files.
+Most of this template's workflows are now **skills** in `.claude/skills/`, not prompt files. Skills load themselves when the work matches their description, so they need no attaching. What remains here are the two workflows that are still prompt files. <!-- inherited-docs-ok -->
 
 ## Configuration
 
