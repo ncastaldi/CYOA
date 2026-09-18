@@ -1,0 +1,27 @@
+# -------------------------------------------------------
+# Secrets — never commit these
+# -------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# -------------------------------------------------------
+# OS
+# -------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# -------------------------------------------------------
+# IDE
+# -------------------------------------------------------
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# -------------------------------------------------------
+# Stack-specific ignores (Python __pycache__/.venv, node_modules/dist,
+# *.db, etc.) — /init-project appends the right block(s) once the stack
+# is chosen. Project-specific entries go below that.
+# -------------------------------------------------------
