@@ -1,0 +1,46 @@
+# Production deployment: pull the image CI published, mount stories and data,
+# let Traefik handle TLS and routing.
+#
+#   docker compose pull && docker compose up -d
+#
+# To run from source instead while developing, uncomment the `build:` line.
+
+services:
+  cyoa:
+    image: ghcr.io/ncastaldi/cyoa:latest
+    # build: .
+    container_name: cyoa
+    restart: unless-stopped
+
+    environment:
+      CYOA_PUBLIC_HOST: ${CYOA_PUBLIC_HOST:-cyoa.castaldifamily.com}
+      CYOA_SITE_NAME: ${CYOA_SITE_NAME:-CYOA}
+      CYOA_LOG_LEVEL: ${CYOA_LOG_LEVEL:-INFO}
+
+    volumes:
+      # Stories are content, edited on the host. Read-only inside the container:
+      # v1 never writes a story, and the mount should enforce that rather than
+      # trusting it. The v2 editor is what changes this line.
+      - ./stories:/app/stories:ro
+      # Reader progress. The only thing the app persists.
+      - cyoa-data:/app/data
+
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.cyoa.rule: Host(`${CYOA_PUBLIC_HOST:-cyoa.castaldifamily.com}`)
+      traefik.http.routers.cyoa.entrypoints: websecure
+      traefik.http.routers.cyoa.tls: "true"
+      # Adjust to whatever this Traefik instance names its resolver.
+      traefik.http.routers.cyoa.tls.certresolver: letsencrypt
+      traefik.http.services.cyoa.loadbalancer.server.port: "8000"
+
+    networks:
+      - proxy
+
+volumes:
+  cyoa-data:
+
+networks:
+  # The shared network Traefik already watches. Created outside this file.
+  proxy:
+    external: true

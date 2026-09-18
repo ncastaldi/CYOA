@@ -1,0 +1,26 @@
+{# One passage: its prose and the ways out of it.
+
+   Swapped in place by htmx on each choice, and also included by the full
+   passage page — so the no-JavaScript path renders exactly the same markup. #}
+<article id="passage" class="passage" data-passage-id="{{ passage.id }}">
+  <div class="passage-body">{{ passage_html | safe }}</div>
+
+  {% if passage.is_ending %}
+    <p class="ending">The End.</p>
+    <form method="post" action="{{ url_for('restart_story', slug=story.slug) }}"
+          hx-post="{{ url_for('restart_story', slug=story.slug) }}"
+          hx-target="#passage" hx-swap="outerHTML">
+      <button type="submit" class="choice choice--restart">Start over</button>
+    </form>
+  {% else %}
+    <form class="choices" method="post" action="{{ url_for('choose', slug=story.slug) }}"
+          hx-post="{{ url_for('choose', slug=story.slug) }}"
+          hx-target="#passage" hx-swap="outerHTML">
+      {% for choice in passage.choices %}
+        <button type="submit" name="choice_index" value="{{ loop.index0 }}" class="choice">
+          {{ choice.text }}
+        </button>
+      {% endfor %}
+    </form>
+  {% endif %}
+</article>

@@ -1,122 +1,140 @@
 # CLAUDE.md
 
-This file is the primary context document for Claude (and other LLM assistants) working in this repository. Fill it in as the project takes shape. An incomplete CLAUDE.md is better than none — add sections as you know them.
-
----
-
-## How to fill this in
-
-This file should be filled in during or just after initial project setup, then kept current as the project evolves. The best time to update it is at the end of a working session, before you close the repo.
-
-Each section below has a comment explaining what to put there. Remove the comments as you fill in real content.
-
-A well-maintained CLAUDE.md means every new LLM session starts with full context instead of having to rediscover the project from scratch.
+This file is the primary context document for Claude (and other LLM assistants) working in this repository. Read it first.
 
 ---
 
 ## Project identity
 
-<!-- 
-What does this project do? 2-3 sentences max.
-Include the public name if different from the repo name.
-Who is the intended user?
--->
+**CYOA** — a self-hosted choose-your-own-adventure engine. A containerized application someone runs on their own hardware; once running, it serves a digital choose-your-own-adventure book, read in a browser.
+
+This is a hobby project. **The engine is the point** — the fun is in building the platform, and stories are the excuse. Story content comes from elsewhere: people close to the maintainer, or an LLM. That has a real consequence for design — the engine must be general enough to run a story it has never seen, written by someone who never read its source.
+
+Anything that makes the engine more interesting to build is worth considering. Anything that turns this into a content-management chore is not.
 
 ## Stack
 
-<!-- 
-List the concrete technologies in use:
-- Language and version (e.g. Python 3.11)
-- Web framework (e.g. FastAPI)
-- Frontend (e.g. React 18 / Vite)
-- Database and ORM (e.g. PostgreSQL / SQLAlchemy + Alembic)
-- Test runner (pytest)
-- Linter/formatter (ruff)
-- Any other key dependencies
--->
+- **Python 3.12+**
+- **FastAPI** — chosen over Flask for native async, SSE, and websockets, which is what the multiplayer and LLM-streaming roadmap items need
+- **Jinja2 + htmx** — server-rendered HTML, no build step, no bundler, no `node_modules`. htmx is vendored in `src/cyoa/web/static/js/`, not CDN-loaded
+- **SQLite via SQLAlchemy** — one file on a volume, behind a repository layer
+- **Markdown + YAML frontmatter** for story files
+- **pytest + ruff** — ruff covers lint and format; mypy and a coverage gate are deliberately deferred, see Open questions
+- **Docker**, image published to GHCR by CI, deployed with Compose behind Traefik
 
 ## Architecture
 
-<!--
-Describe the top-level structure of the codebase:
-- What lives in backend/, frontend/, db/
-- How the pieces connect (e.g. "FastAPI serves a REST API consumed by the React frontend")
-- Any key patterns enforced (e.g. provider adapter pattern, repository pattern)
-- Data flow at a high level
--->
+```
+src/cyoa/
+├── engine/    Story model, parsers, graph validation, play state.  Pure Python.
+├── library/   Discovers stories on disk, builds the catalogue.
+├── storage/   SQLite behind a repository.  The only SQL in the project.
+├── web/       FastAPI routes, Jinja templates, static assets.
+├── config.py  Environment-driven settings (CYOA_ prefix).
+└── main.py    Composition root — exposes create_app(), no module-level app.
+```
+
+**One rule governs the layout: the engine is a pure library, everything else is an adapter over it.** `engine/` imports no web framework and no database driver, and does not know they exist. Dependencies point inward — `web`, `storage`, and `library` may import from `engine`; never the reverse.
+
+This is what keeps the roadmap additive rather than a series of rewrites:
+
+| Roadmap item | What it costs |
+|---|---|
+| Twee story format | A new parser class in `engine/` |
+| CLI or SSH client | A second adapter beside `web/` |
+| LLM story generation | A provider behind the loader interface `library/` already uses |
+| Multiplayer | Sessions already carry a participant list |
+| Move to PostgreSQL | A connection string and a migration, contained to `storage/` |
+
+If a change to one of those forces edits across three packages, the boundary has eroded. Stop and fix it rather than pushing through.
+
+Two patterns are load-bearing:
+
+- **Parser boundary.** Story formats are `StoryParser` implementations. Only parsers see raw file syntax.
+- **Repository.** Repositories speak engine types. `PlaySessionRow` never leaves `storage/`.
 
 ## Constraints (non-negotiable)
 
-<!--
-Things Claude must never do in this repo.
-Be explicit. Examples:
-- Never commit .env or any file containing secrets
-- Never add GUI to the CLI path
-- Never bypass the adapter pattern for external APIs
-- Never store PII in profiles
--->
+1. **Never `eval` story content.** When passages eventually get conditions (`if has_lantern`), the lazy implementation is `eval()` — which makes any story file someone hands you a remote-code-execution vector. Write a small expression evaluator or a restricted rule syntax instead. There is no deadline that justifies breaking this one.
+2. **v1 makes zero outbound network calls.** The book plays offline. The LLM provider is the only thing that ever changes this, and it stays optional and off by default.
+3. **Single container, no required companions.** Someone should be able to `docker run` the image and get a book — no database server, no sidecar, no setup step. The example story ships in the image for exactly this reason.
+4. **Nothing outside the parser layer touches story-file syntax.** No route, template, or repository gets its own `[[...]]` regex. The moment this leaks, the story format stops being a decision that can be revisited.
+5. **No secrets in the repo.** API keys and credentials come from the environment. `.env` is gitignored; `.env.example` carries names and never values.
 
 ## Code style
 
-<!--
-- Naming conventions (snake_case for Python, PascalCase for React components, etc.)
-- Docstring format (Google style recommended)
-- Type hints: required or optional?
-- Error handling patterns
-- Logging: how and where (e.g. always use setup_logger(__name__))
-- Any patterns to avoid
--->
-
-## Scoring / ranking logic (if applicable)
-
-<!--
-If this project scores, ranks, or weights things:
-- What are the weights and what do they mean?
-- Where does this logic live?
-- What is and isn't handled by LLM vs deterministic code?
--->
+- Python defaults, enforced by ruff — PEP 8, `snake_case`, sorted imports. Line length 100.
+- **Type hints on public functions and methods.** mypy is not enabled yet; annotating as we go is what keeps turning it on a config change rather than a refactor.
+- **Docstrings on public functions, classes, and modules.** Say *why*, not just *what* — the what is usually readable from the signature. The interesting comments in this codebase explain a decision, not a mechanism.
+- Passage ids and story slugs are lowercase with hyphens or underscores, so they are URL-safe without escaping.
+- Story files live at `stories/{slug}/story.md`.
 
 ## Current state
 
-<!--
-Keep this current. Update at the end of each session.
-Format:
 ### Done
-- bullet list of completed work
 
-### In progress
-- bullet list of active work
-
-### Not started
-- bullet list of planned but untouched work
--->
-
-### Done
+- Repo scaffolded from template; `foundation.md` and `CLAUDE.md` written
+- Package structure with the engine/adapter boundary established
+- Internal story model implemented (`engine/models.py`) and tested for real
+- Story format designed and specified (`docs/specs/spec-story-format.md`)
+- Test suite scaffolded — implemented modules tested normally, unimplemented ones written as `xfail(strict=True)` specifications
+- Root tooling: `pyproject.toml`, `Dockerfile`, `compose.yaml` with Traefik labels, `.env.example`
+- CI (lint, format, test) and GHCR publishing, with publish gated on CI
 
 ### In progress
 
+Nothing yet — the next session starts the build.
+
 ### Not started
+
+Roughly in dependency order:
+
+1. `engine/markdown_parser.py` — parse frontmatter, passages, choices, tags
+2. `engine/graph.py` — `validate_story` and `reachable_from`
+3. `engine/state.py` — `begin` and `advance`
+4. `library/loader.py` — discover stories, dispatch to a parser, list and load
+5. `storage/` — engine construction, schema, `PlaySessionRepository`
+6. `web/routes.py` + `main.create_app` — wire it together and render
+
+Each has a test module already written against it. Delete the `pytestmark` xfail block as you implement, and watch the tests go green for real.
+
+**Roadmap, beyond v1**, in no committed order: a story editor behind an admin login, multiplayer, live LLM story generation at read time, stats/inventory/combat, non-text media.
 
 ## Open questions
 
-<!--
-Known ambiguities, deferred decisions, or things that will 
-trip up a new LLM session if not documented.
-Format: numbered list, one question per item.
-Remove items when resolved and add a note to the relevant ADR or spec.
--->
+- **Twee format.** Markdown + frontmatter was chosen for v1, but Twee is an established interactive-fiction standard with a free visual editor (Twine) that could substitute for building one. Revisit after research. The parser boundary is what keeps this cheap — it should stay a new parser class, not a refactor.
+- **Multiplayer shape.** `engine/state.py` assumes readers move through one book *together*, sharing a position, because that is the likelier shape and it costs nothing now. Independent per-reader positions would be a schema change. Decide deliberately before building multiplayer, not during.
+- **Stats, inventory, combat.** Interesting, undecided, and the thing most likely to turn a narrative engine into an RPG engine. If it happens, see constraint 1 first.
+- **Auth for the v2 editor.** App-level admin password (portable for any self-hoster) versus Traefik + Authentik forward auth (matches the existing homelab, less code). Not decided; v1 has no auth at all.
+- **mypy.** Deferred, not rejected. Type hints are being written as we go specifically so adoption stays a config change. Turn it on when the engine's shape settles.
+- **Coverage gate.** Deferred until there is enough code for a threshold to mean something rather than be arbitrary.
 
 ## Decision log
 
-<!--
-A running summary of key decisions. For full context see docs/ADRs/.
-Format:
-### ADR-NNN — Short title
-- One line summary of the decision
-- Key consequence
-- What was ruled out
--->
+### ADR-001 — Python 3.12 + FastAPI
+Python for the graph and parsing work at the heart of the project; FastAPI over Flask because native async, SSE, and websockets are what the multiplayer and LLM-streaming roadmap items need. Choosing Flask would have meant bolt-ons for both.
+
+### ADR-002 — Server-rendered HTML + htmx, no SPA
+The product is text. An SPA would add a build pipeline, a second package ecosystem, and a bundler to render prose. htmx gives smooth passage swaps with a vendored 50KB file and no toolchain. Every interaction also works as a plain form post, so the book reads with JavaScript disabled.
+
+### ADR-003 — SQLite behind a repository
+One file on a volume, backs up with `cp`, no second container — which is what constraint 3 requires. The repository layer means outgrowing SQLite later is a connection string and a migration, contained to `storage/`.
+
+### ADR-004 — Markdown + YAML frontmatter for stories, parser behind a protocol
+Authors are people and LLMs, not programmers. JSON is hostile to hand-authoring; YAML's block scalars make multi-paragraph prose unpleasant. Markdown lets an author write a story rather than a data structure. Parsing sits behind a `StoryParser` protocol so the format stays revisitable — see the Twee open question.
+
+### ADR-005 — Engine as a pure library; web, storage, and library are adapters
+The stated point of the project is building the engine. Keeping it free of framework and database imports is what makes the roadmap additive, and what lets the engine be tested without HTTP or SQL. This is the rule that the other decisions lean on.
+
+### ADR-006 — v1 is read-only: no editor, no auth
+Stories are hand-edited or LLM-generated files dropped into a directory. An editor means CRUD forms and an auth story, which is the least interesting work available and would delay a playable book. Editor and auth land together, later.
+
+### ADR-007 — GHCR image built in CI, deployed with Compose behind Traefik
+Deploys are `docker compose pull && up -d`: no build toolchain on the host, no source checkout in production, and tagged releases become real rollback points. The publish workflow calls CI as a reusable workflow, so an image that could not pass tests is never pushed.
+
+### ADR-008 — Unimplemented modules ship as `xfail(strict=True)` specifications
+Tests are written before implementations and marked xfail against `NotImplementedError`. `strict=True` means implementing a function makes its test fail with XPASS until the marker is deleted — scaffolding that cleans itself up instead of rotting into permanently-skipped tests.
 
 ---
 
-*Last updated: {date} | Session: {brief description}*
+*Last updated: 2026-09-18 | Session: project initialization — requirements interview, scaffolding, foundation*

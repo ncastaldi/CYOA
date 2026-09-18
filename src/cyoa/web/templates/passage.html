@@ -1,0 +1,10 @@
+{# Full page for a passage. The htmx path returns partials/passage.html alone;
+   this wraps the identical partial for a direct request or a JS-less reader. #}
+{% extends "base.html" %}
+
+{% block title %}{{ story.title }} — {{ site_name }}{% endblock %}
+
+{% block content %}
+  <h1 class="story-title">{{ story.title }}</h1>
+  {% include "partials/passage.html" %}
+{% endblock %}

@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cyoa"
+version = "0.1.0"
+description = "A self-hosted choose-your-own-adventure engine"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "jinja2>=3.1",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "sqlalchemy>=2.0",
+    # Form posts: every choice is a real <form> submission, not only an htmx swap.
+    "python-multipart>=0.0.12",
+    # Story files: YAML frontmatter, Markdown prose.
+    "pyyaml>=6.0",
+    "markdown-it-py>=3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    # Required by fastapi.testclient.
+    "httpx>=0.27",
+    "ruff>=0.7",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cyoa"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+# Assistant tooling synced from the project template, not project source.
+# Formatting it here would guarantee drift on every template sync.
+extend-exclude = [".claude"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # import sorting
+    "N",    # pep8 naming
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "SIM",  # simplify
+    "RUF",  # ruff-specific
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Asserting on private helpers and fixtures is the point of a test.
+"tests/*" = ["S101"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
