@@ -1,6 +1,10 @@
 # CYOA — Foundation
-**Status**: Draft v0.1
+**Status**: Accepted — v1 delivered
 **Date**: 2026-09-18
+
+> **This is the founding brief, kept as written.** It describes the intent the project started from, and that intent has not changed — so the text below is deliberately not updated as things get built. v1 is now complete: the success metric at the bottom is met, and the deferrals under "What We Are Not Building" are still deferred.
+>
+> For what exists today, see `CLAUDE.md`. For what is queued next, see `roadmap.md`.
 
 ---
 

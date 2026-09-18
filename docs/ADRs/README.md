@@ -4,6 +4,27 @@ This folder contains Architecture Decision Records for the project. Each ADR doc
 
 ADRs are written when a decision is made and updated if circumstances change. They are not deleted — superseded decisions are marked as such and kept for historical context.
 
+## Where CYOA's ADRs actually live
+
+**This folder is empty, and that is current rather than an oversight.** CYOA's accepted decisions — ADR-001 through ADR-010 — are recorded in the decision log at the bottom of [`CLAUDE.md`](../../CLAUDE.md), where each is a short paragraph:
+
+| | |
+|---|---|
+| ADR-001 | Python 3.12 + FastAPI |
+| ADR-002 | Server-rendered HTML + htmx, no SPA |
+| ADR-003 | SQLite behind a repository |
+| ADR-004 | Markdown + YAML frontmatter for stories, parser behind a protocol |
+| ADR-005 | Engine as a pure library; web, storage, and library are adapters |
+| ADR-006 | v1 is read-only: no editor, no auth |
+| ADR-007 | GHCR image built in CI, deployed with Compose behind Traefik |
+| ADR-008 | Unimplemented modules ship as `xfail(strict=True)` specifications |
+| ADR-009 | Validation reports warnings even when errors are present |
+| ADR-010 | A reader's place lives in a cookie pointing at a database row |
+
+Keeping them there is deliberate: they are the context an assistant or a returning maintainer needs in the same file as everything else they need, and each is currently short enough to read in one sitting. A decision **graduates into this folder** when it outgrows a paragraph — when it needs the alternatives written out, a migration path, or diagrams. At that point the entry in `CLAUDE.md` shrinks to a one-line summary and a link, so there is still exactly one place to look for the list.
+
+Open questions — decisions deliberately *not* yet made — are tracked in the Open questions section of `CLAUDE.md`, not here. An ADR records a decision; an open question is the absence of one.
+
 ## What belongs here
 
 - Technology choices (language, framework, database, external APIs)

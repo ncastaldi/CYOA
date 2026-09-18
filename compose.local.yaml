@@ -1,0 +1,39 @@
+# Local development overlay. Never deployed.
+#
+#   docker compose -f compose.yaml -f compose.local.yaml up --build
+#
+# Then open http://localhost:8000.
+#
+# Deliberately *not* named `compose.override.yaml`, which Compose loads
+# automatically whenever it is present. This file publishes a port and turns
+# Traefik off, so a host that deploys from a checkout would pick it up by
+# accident and quietly take the app off the proxy. Requiring `-f` makes local
+# mode something you ask for rather than something you inherit.
+
+services:
+  cyoa:
+    # Build the working tree instead of pulling the published image, so what
+    # runs is the code in front of you rather than the last thing CI shipped.
+    build: .
+    image: cyoa:local
+
+    # compose.yaml publishes no ports on purpose — in production Traefik
+    # reaches the container over the shared proxy network, and exposing a port
+    # on the host would bypass it. There is no Traefik on a laptop, so here the
+    # port has to be published or the app is unreachable.
+    ports:
+      - "8000:8000"
+
+    environment:
+      CYOA_SITE_NAME: CYOA (local)
+      CYOA_LOG_LEVEL: DEBUG
+
+    labels:
+      traefik.enable: "false"
+
+networks:
+  # compose.yaml expects Traefik to already own this network. On a machine
+  # where it does not exist, Compose would refuse to start; flipping it to
+  # non-external lets Compose create a throwaway one instead.
+  proxy:
+    external: false

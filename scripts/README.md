@@ -12,7 +12,7 @@ Dev-time utilities that support development but are not part of the shipped prod
 
 ## What does not belong here
 
-- Application code (that goes in backend/)
+- Application code (that goes in `src/cyoa/`)
 - Test files (those go in tests/)
 - CI/CD pipeline definitions (those go in .github/workflows/)
 

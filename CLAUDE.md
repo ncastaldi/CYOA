@@ -77,7 +77,7 @@ Two patterns are load-bearing:
 - Repo scaffolded from template; `foundation.md` and `CLAUDE.md` written
 - Package structure with the engine/adapter boundary established
 - Story format designed and specified (`docs/specs/spec-story-format.md`)
-- Root tooling: `pyproject.toml`, `Dockerfile`, `compose.yaml` with Traefik labels, `.env.example`
+- Root tooling: `pyproject.toml`, `Dockerfile`, `compose.yaml` with Traefik labels, `compose.local.yaml` for local runs, `.env.example`
 - CI (lint, format, test) and GHCR publishing, with publish gated on CI
 - **The engine is complete and green** — 35 passing tests across four modules:
   - `engine/models.py` — the internal story model
@@ -95,6 +95,8 @@ Two patterns are load-bearing:
   Verified end to end against `stories/example/story.md` through a real uvicorn boot: the library lists it, a reader walks it to an ending, progress survives across requests, and restart returns to the start passage.
 
 - **Every package has unit tests of its own** — 99 passing tests. `library/` and `storage/` were previously covered only through `test_web.py`; `tests/test_library.py` and `tests/test_storage.py` now test them directly, at the same behaviour-level as `test_state.py`. Between them they pin down the things the web layer only reaches by accident: slug validation as the barrier between a URL segment and the filesystem, dispatch to a second parser by extension, the catalogue being re-read per call, and UTC being re-attached to timestamps SQLite hands back naive.
+
+- **Documentation reflects the built state.** Every doc in the repo was audited against the code: the template leftovers are gone (`CONTRIBUTING.md` described a stack-agnostic template with no CI; `SECURITY.md` said there was no deployed application; `scripts/README.md` pointed at a `backend/` directory that never existed), the retired `xfail` convention is marked retired rather than described as current, and `docs/ADRs/README.md` now says where the ADRs actually are. `compose.local.yaml` was added because `compose.yaml` publishes no ports and needs a Traefik-owned network, so it cannot run on a development machine.
 
 ### In progress
 
@@ -141,6 +143,8 @@ Deploys are `docker compose pull && up -d`: no build toolchain on the host, no s
 ### ADR-008 — Unimplemented modules ship as `xfail(strict=True)` specifications
 Tests are written before implementations and marked xfail against `NotImplementedError`. `strict=True` means implementing a function makes its test fail with XPASS until the marker is deleted — scaffolding that cleans itself up instead of rotting into permanently-skipped tests.
 
+*Status: accepted, currently dormant.* It did its job through v1 and no `xfail` markers remain in the suite. Reach for it again the next time a package is built from an empty file; note that it only applies to code written before its implementation, so tests added to a package that already works need a different way to earn trust (see `tests/README.md`).
+
 ### ADR-009 — Validation reports warnings even when errors are present
 `validate_story` does not suppress warnings on a story that already has errors, even though a dangling link makes reachability noisier — an orphan caused by a broken link is reported as both. Suppressing would mean an author fixes the errors, re-runs, and only then learns what else is wrong, which is the one-problem-per-run loop the function exists to avoid. Callers that want only blocking problems filter on `Severity.ERROR`.
 
@@ -149,4 +153,4 @@ The cookie holds a play-session id and nothing else; the session itself is a row
 
 ---
 
-*Last updated: 2026-09-18 | Session: unit tests for `library/` and `storage/`; `roadmap.md` introduced as the cross-session work queue*
+*Last updated: 2026-09-18 | Session: unit tests for `library/` and `storage/`; `roadmap.md` introduced as the cross-session work queue; full documentation audit against the built state*

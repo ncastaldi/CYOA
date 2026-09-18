@@ -47,4 +47,4 @@ If a change to one of those forces edits across three packages, the boundary has
 
 - Public functions and methods carry type hints. mypy is not enabled yet; annotating as we go is what keeps turning it on a config change rather than a refactor.
 - Public functions, classes, and modules carry docstrings. Say *why*, not just *what* — the what is usually readable from the signature.
-- Passage ids are `snake_case`, so they are safe in URLs without escaping.
+- Passage ids and story slugs are lowercase with hyphens or underscores, so they are safe in URLs without escaping. Slugs arrive from the URL, so `library/loader.py` validates them as a single path segment before touching the filesystem.

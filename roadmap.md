@@ -41,6 +41,9 @@ decision itself gets asked. Everything else is executable without checking in.
 - **v1 reads end to end.** 42 tests, green, no `xfail` left in the suite.
 - **Unit tests for `library/` and `storage/`** — 57 new tests, suite 42 → 99.
   Closes the last "Not started" item from v1. See the log entry below.
+- **Documentation audit** — every doc in the repo checked against the built
+  state; template leftovers removed, stale claims corrected, `compose.local.yaml`
+  added so the app can actually be run on a development machine.
 
 ## In Progress
 
@@ -98,9 +101,12 @@ Ordered. Take from the top.
 
 5. **Non-test polish, unblocked and small** — no decision needed:
    - `Settings.log_level` is defined and never read; nothing configures logging.
+     `compose.local.yaml` sets it to `DEBUG`, which currently does nothing.
    - No route surfaces `validate_story` warnings anywhere an author can see
      them. The library marks a story unplayable on errors, but an author gets
      no way to find out *why* without reading the source.
+   - `compose.local.yaml` has never been run — it was written in an environment
+     with no Docker daemon. First person to use it should expect to debug it.
 
 ## Blocked
 
@@ -112,6 +118,73 @@ Nothing.
 
 Newest first. One entry per completed item — what changed, what it cost, and
 anything the next session needs to know.
+
+### 2026-09-18 — Documentation audit against the built state
+
+Every Markdown file in the repo read and checked against the code. Three
+classes of problem, all from the same cause — the repo was scaffolded from a
+stack-agnostic template and the docs were never re-pointed at the application
+that grew in it.
+
+**Template leftovers describing a different repository:**
+
+- `CONTRIBUTING.md` opened "Thanks for your interest in contributing to this
+  template" and stated "No CI gate on the template itself — it ships no app
+  code, so there's nothing to lint or test at this level." There is a CI gate
+  and 99 tests. Its out-of-scope section also declared application code out of
+  scope. Rewritten for this project, including the real quality gate and the
+  constraints a new feature has to clear.
+- `SECURITY.md` said "This is a project template, not a deployed application",
+  referenced a `requirements.txt` that does not exist, and claimed Dependabot
+  watched npm (it watches pip, docker, and github-actions). Rewritten, with a
+  threat model — a story file is untrusted input, and v1's lack of auth is
+  deliberate rather than an oversight.
+- `scripts/README.md` sent application code to `backend/`, a directory this
+  project has never had.
+- `CONTRIBUTING.md` referenced `.github/prompts/create-commit.prompt.md`,
+  which does not exist. Reference removed.
+
+**Stale claims about the build state:**
+
+- `README.md` said "Most of the engine is not implemented yet — its tests are
+  written as `xfail` specifications." The engine has been complete for two
+  sessions. Anyone following the README was told the project does not work.
+- `tests/README.md` documented the `xfail` convention as current and was
+  missing `test_state.py`, `test_library.py`, and `test_storage.py` from its
+  layout. The convention is now marked retired rather than deleted — it is
+  worth reaching for again, and ADR-008 gained a matching status note.
+- `src/cyoa/README.md` said passage ids are `snake_case`; everywhere else says
+  lowercase with hyphens or underscores, which is what the loader enforces.
+
+**Docs pointing at the wrong place:**
+
+- `README.md` sent readers to `docs/ADRs/` for architecture decisions. That
+  folder is empty — ADR-001 to ADR-010 live in `CLAUDE.md`. Both now say so,
+  and `docs/ADRs/README.md` explains when a decision graduates into a file.
+- `docs/api/README.md` told the reader to note the framework's generated-docs
+  URL and never did. FastAPI serves `/docs`, `/redoc`, and `/openapi.json`
+  (verified). Added, along with the route table and the fact that this is a
+  server-rendered site rather than a JSON API.
+- `docs/plans/README.md` claimed feature roadmaps, which `roadmap.md` now
+  holds. Now points there and keeps upstream exploration.
+
+**`compose.local.yaml` added.** `compose.yaml` publishes no ports and joins an
+external `proxy` network Traefik is expected to own, so `docker compose up`
+fails on a development machine — and the README presented it as the way to
+"run it properly". The overlay builds from the working tree, publishes 8000,
+and makes the network non-external. **Deliberately not named
+`compose.override.yaml`**, which Compose auto-loads: a host deploying from a
+checkout would silently pick it up and drop the app off the proxy.
+
+**Not changed, deliberately:** `docs/specs/spec-story-format.md` was verified
+against the parser and is accurate — it is the strongest doc in the repo.
+`docs/foundation.md` is the founding brief and its intent has not changed, so
+it got a status header saying it is kept as written rather than a rewrite. The
+four package READMEs under `src/cyoa/` are written as timeless "what belongs
+here" guides and had not gone stale.
+
+**Caveat:** `compose.local.yaml` is unverified. This environment has the Docker
+client but no daemon, so it was never run. Logged under Up Next item 5.
 
 ### 2026-09-18 — Unit tests for `library/` and `storage/`
 
